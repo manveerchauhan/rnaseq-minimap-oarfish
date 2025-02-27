@@ -23,7 +23,7 @@ This Nextflow pipeline processes bulk RNA-seq data using Minimap2 for alignment 
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/rnaseq-minimap-oarfish.git
+   git clone https://github.com/manveerchauhan/rnaseq-minimap-oarfish.git
    cd rnaseq-minimap-oarfish
    ```
 

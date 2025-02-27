@@ -139,16 +139,6 @@ singularity {
 }
 ```
 
-## Troubleshooting
-
-- **Pipeline fails during execution**: Use the `-resume` flag to continue from the last successful step (already included in the run script).
-- **Memory issues**: Adjust the memory settings in `nextflow.config`.
-- **Execution on a cluster**: Make sure to use the appropriate profile (`--profile cluster`).
-
-## License
-
-This pipeline is available under the MIT License.
-
 ## Citation
 
 If you use this pipeline in your work, please cite:

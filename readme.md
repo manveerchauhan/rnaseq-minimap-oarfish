@@ -22,27 +22,61 @@ This Nextflow pipeline processes long-read RNA-seq data using Minimap2 for align
 
 ## Installation
 
-1. Clone this repository:
+### Prerequisites
+
+- [Conda](https://docs.conda.io/en/latest/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) installed
+
+### Step-by-Step Installation
+
+1. **Install Conda** (if not already installed):
+   ```bash
+   # Download the Miniconda installer
+   wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+   
+   # Make the installer executable
+   chmod +x miniconda.sh
+   
+   # Run the installer
+   ./miniconda.sh
+   
+   # Follow the prompts to complete installation
+   # Then initialize conda in your shell
+   source ~/.bashrc
+   ```
+
+2. **Clone this repository**:
    ```bash
    git clone https://github.com/manveerchauhan/rnaseq-minimap-oarfish.git
    cd rnaseq-minimap-oarfish
    ```
 
-2. Make the run script executable:
+3. **Make the run script executable**:
    ```bash
    chmod +x run.sh
    ```
 
-3. Install required tools:
+4. **Create and activate the conda environment**:
    ```bash
-   # Using conda (recommended)
+   # Create environment from the provided yml file
    conda env create -f environment.yml
-   conda activate rnaseq-pipeline
    
-   # Or using individual installations
-   conda install -c bioconda minimap2 samtools multiqc
-   # Install oarfish:
-   conda install -c bioconda oarfish
+   # Activate the environment
+   conda activate rnaseq-pipeline
+   ```
+
+   The environment.yml file includes all necessary dependencies:
+   - nextflow, minimap2, samtools, oarfish, multiqc (core pipeline tools)
+   - Python libraries for data analysis
+   - Quality control tools
+   - Utilities for sequence manipulation and visualization
+   
+5. **Verify installation**:
+   ```bash
+   # Check that key tools are available
+   nextflow -version
+   minimap2 --version
+   samtools --version
+   oarfish --version
    ```
 
 ## Directory Structure
@@ -116,6 +150,45 @@ results/
     └── trace.txt
 ```
 
+## Quick Start Guide
+
+Once the installation is complete, follow these steps to run the pipeline:
+
+1. **Prepare your data**:
+   ```bash
+   # Create directories for your data
+   mkdir -p data reference results
+   
+   # Copy or link your FASTQ files to the data directory
+   cp /path/to/your/reads/*.fastq.gz data/
+   
+   # Copy or link your reference transcriptome to the reference directory
+   cp /path/to/your/transcriptome.fa reference/
+   ```
+
+2. **Run the pipeline**:
+   ```bash
+   # Basic run with default parameters
+   ./run.sh
+   
+   # Or run with custom parameters
+   ./run.sh --reads "data/*.fastq.gz" \
+            --reference "reference/transcriptome.fa" \
+            --output "results" \
+            --threads 16 \
+            --mapq 10 \
+            --params "--filter-group no-filters --model-coverage"
+   ```
+
+3. **Examine the results**:
+   ```bash
+   # View the transcript quantification results
+   head results/oarfish/sample1.quant
+   
+   # Open the MultiQC report in a browser
+   firefox results/multiqc/multiqc_report.html
+   ```
+
 ## Customization
 
 ### Using Different Profiles
@@ -144,6 +217,34 @@ singularity {
     autoMounts = true
 }
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Memory errors during execution**:
+   - Adjust memory settings in `nextflow.config`
+   - Try using the `-resume` flag to continue from the last successful step
+
+2. **Missing dependencies**:
+   - Ensure you've activated the conda environment: `conda activate rnaseq-pipeline`
+   - Check if all tools are installed correctly: `which minimap2 samtools oarfish`
+
+3. **Input format issues**:
+   - Ensure your FASTQ files are properly formatted and not corrupted
+   - Check that your reference transcriptome is in proper FASTA format
+
+4. **Pipeline execution errors**:
+   - Check the error logs in `.nextflow.log`
+   - Look for specific process errors in the `work/` directory
+
+### Getting Help
+
+If you encounter issues not covered here, please open an issue on the GitHub repository with:
+- The exact command you ran
+- The complete error message
+- Your system information
+- Any relevant logs
 
 ## Citation
 

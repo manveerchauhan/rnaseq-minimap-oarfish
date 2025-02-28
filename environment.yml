@@ -1,0 +1,53 @@
+name: bulk-rnaseq-pipeline
+
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Core pipeline tools
+  - nextflow>=21.04.0
+  - minimap2>=2.24
+  - samtools>=1.15
+  - oarfish>=0.7.0
+  - multiqc>=1.12
+  
+  # Additional utilities
+  - pigz                    # Parallel gzip for faster compression/decompression
+  - parallel                # GNU parallel for parallel processing
+  - seqkit>=2.3            # FASTA/Q manipulation toolkit
+  
+  # Python and related packages
+  - python>=3.8
+  - biopython>=1.79        # Python tools for computational biology
+  - pandas>=1.3.0          # Data analysis library
+  - matplotlib>=3.5.0      # Plotting library
+  - numpy>=1.21.0          # Numerical computing
+  
+  # Quality control
+  - fastqc>=0.11.9         # Quality control for sequence data
+  - nanostat>=1.6.0        # Statistics for long reads
+  
+  # Other useful tools
+  - bedtools>=2.30.0       # Genome arithmetic
+  - gffread>=0.12.7        # GFF/GTF file manipulation
+  - htseq>=2.0.0           # Count reads in features
+  - r-base>=4.1.0          # R statistical language
+  - bioconductor-deseq2    # Differential expression analysis
+  
+  # System utilities
+  - procps-ng              # Process monitoring tools
+  - wget                   # File downloading
+  - curl                   # URL transfer tool
+  
+  # Visualization
+  - graphviz               # Graph visualization (for nextflow diagrams)
+  - ca-certificates        # Security certificates
+  - pip                    # Python package installer
+  
+  # Additional packages via pip
+  - pip:
+    - multiqc-oarfish      # MultiQC plugin for Oarfish (if available)
+    - rich                 # Better terminal output
+    - pygenomeviz          # Genome visualization

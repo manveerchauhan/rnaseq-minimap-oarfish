@@ -1,13 +1,14 @@
 # RNA-seq Pipeline with Minimap2 and Oarfish
 
-This Nextflow pipeline processes bulk RNA-seq data using Minimap2 for alignment and Oarfish for RNA-seq analysis.
+This Nextflow pipeline processes long-read RNA-seq data using Minimap2 for alignment and Oarfish for transcript quantification.
 
 ## Features
 
 - Parallel processing of multiple RNA-seq samples
-- Alignment with Minimap2 (splice-aware)
+- Alignment with Minimap2 (long-read high-quality mode)
+- Quality filtering (MAPQ ≥ 10) using Samtools
 - SAM to BAM conversion and sorting with Samtools
-- RNA-seq analysis with Oarfish
+- Transcript quantification with Oarfish's coverage model
 - MultiQC reporting for quality assessment
 - Configurable for different computing environments (local, cluster, cloud)
 
@@ -16,7 +17,7 @@ This Nextflow pipeline processes bulk RNA-seq data using Minimap2 for alignment 
 - [Nextflow](https://www.nextflow.io/) (v21.04.0 or later)
 - [Minimap2](https://github.com/lh3/minimap2)
 - [Samtools](http://www.htslib.org/)
-- [Oarfish](https://github.com/oarfish) (RNA-seq analysis tool)
+- [Oarfish](https://github.com/COMBINE-lab/oarfish) (Transcript quantification tool)
 - [MultiQC](https://multiqc.info/) (optional, for reports)
 
 ## Installation
@@ -40,7 +41,8 @@ This Nextflow pipeline processes bulk RNA-seq data using Minimap2 for alignment 
    
    # Or using individual installations
    conda install -c bioconda minimap2 samtools multiqc
-   # Install oarfish as per their instructions
+   # Install oarfish:
+   conda install -c bioconda oarfish
    ```
 
 ## Directory Structure
@@ -54,7 +56,7 @@ rnaseq-minimap-oarfish/
 ├── data/                    # Put your FASTQ files here
 │   ├── sample1_1.fastq.gz
 │   └── sample1_2.fastq.gz
-├── reference/               # Reference genome
+├── reference/               # Reference transcriptome
 │   └── genome.fa
 └── results/                 # Output directory
 ```
@@ -71,10 +73,11 @@ rnaseq-minimap-oarfish/
 
 ```bash
 ./run.sh --reads "data/*_{1,2}.fastq.gz" \
-         --reference "reference/genome.fa" \
+         --reference "reference/transcriptome.fa" \
          --output results \
          --threads 16 \
-         --params "--additional-oarfish-params" \
+         --mapq 10 \
+         --params "--filter-group no-filters --model-coverage" \
          --profile cluster
 ```
 
@@ -82,9 +85,10 @@ rnaseq-minimap-oarfish/
 
 - `-h, --help`: Show help message
 - `-r, --reads PATH`: Path to input reads (glob pattern)
-- `-g, --reference PATH`: Path to reference genome
+- `-g, --reference PATH`: Path to reference transcriptome
 - `-o, --output PATH`: Output directory
 - `-t, --threads NUMBER`: Number of CPU threads
+- `-q, --mapq NUMBER`: Minimum mapping quality score (default: 10)
 - `-p, --params STRING`: Additional parameters for Oarfish
 - `-c, --config PATH`: Custom Nextflow config file
 - `-x, --profile STRING`: Nextflow profile (standard, cluster, cloud)
@@ -97,11 +101,13 @@ The pipeline generates the following output structure:
 results/
 ├── minimap2/               # Minimap2 alignment results
 │   └── sample1.sam
-├── bam/                    # Sorted BAM files
-│   ├── sample1.sorted.bam
-│   └── sample1.sorted.bam.bai
-├── oarfish/                # Oarfish RNA-seq analysis results
-│   └── sample1_*
+├── bam/                    # Filtered and sorted BAM files
+│   ├── sample1.filtered.sorted.bam
+│   └── sample1.filtered.sorted.bam.bai
+├── oarfish/                # Oarfish transcript quantification results
+│   ├── sample1.quant
+│   ├── sample1.meta_info.json
+│   └── sample1.ambig_info.tsv
 ├── multiqc/                # MultiQC reports
 │   └── multiqc_report.html
 └── reports/                # Nextflow execution reports
@@ -144,5 +150,5 @@ singularity {
 If you use this pipeline in your work, please cite:
 
 - Minimap2: Li, H. (2018). Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics, 34:3094-3100.
-- Oarfish: [Citation for Oarfish]
+- Oarfish: Zare Jousheghani Z, Patro R (2024). Oarfish: Enhanced probabilistic modeling leads to improved accuracy in long read transcriptome quantification. bioRxiv 2024.02.28.582591; doi: https://doi.org/10.1101/2024.02.28.582591
 - Nextflow: Di Tommaso, P., et al. (2017). Nextflow enables reproducible computational workflows. Nature Biotechnology, 35(4), 316-319.

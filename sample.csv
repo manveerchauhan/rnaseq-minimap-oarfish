@@ -1,0 +1,5 @@
+sample_id,fastq_path
+sample1,data/sample1.fastq.gz
+sample2,data/sample2.fastq.gz
+sample3,data/sample3.fastq.gz
+sample4,data/sample4.fastq.gz

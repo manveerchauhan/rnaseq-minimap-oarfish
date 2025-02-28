@@ -103,7 +103,38 @@ rnaseq-minimap-oarfish/
 ./run.sh
 ```
 
-### Custom Parameters
+### Using a Sample Sheet
+
+The pipeline supports processing multiple samples in parallel using a sample sheet in CSV format:
+
+```
+sample_id,fastq_path
+sample1,data/sample1.fastq.gz
+sample2,data/sample2.fastq.gz
+sample3,data/sample3.fastq.gz
+sample4,data/sample4_1.fastq.gz,data/sample4_2.fastq.gz
+```
+
+This approach allows you to:
+- Process multiple samples in parallel
+- Handle mixed single-end and paired-end data
+- Use a consistent reference transcriptome across all samples
+
+To run with a sample sheet:
+
+```bash
+./run.sh --sample_sheet "samples.csv" \
+         --reference "reference/transcriptome.fa" \
+         --output results \
+         --threads 16 \
+         --mapq 10 \
+         --params "--filter-group no-filters --model-coverage" \
+         --profile cluster
+```
+
+### Legacy Custom Parameters
+
+You can still use the traditional approach with glob patterns:
 
 ```bash
 ./run.sh --reads "data/*_{1,2}.fastq.gz" \
@@ -118,7 +149,8 @@ rnaseq-minimap-oarfish/
 ### Command-line Options
 
 - `-h, --help`: Show help message
-- `-r, --reads PATH`: Path to input reads (glob pattern)
+- `-s, --sample_sheet PATH`: Path to sample sheet CSV file
+- `-r, --reads PATH`: Path to input reads (glob pattern) - legacy mode
 - `-g, --reference PATH`: Path to reference transcriptome
 - `-o, --output PATH`: Output directory
 - `-t, --threads NUMBER`: Number of CPU threads

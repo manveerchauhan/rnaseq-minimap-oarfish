@@ -1,8 +1,9 @@
 #!/usr/bin/env nextflow
 
 // Define parameters
-params.reads = "$baseDir/data/*_{1,2}.fastq.gz"  // Input fastq files pattern
-params.reference = "$baseDir/reference/genome.fa" // Reference genome
+params.sample_sheet = "$baseDir/samples.csv"    // Sample sheet with sample IDs and FASTQ paths
+params.reads = "$baseDir/data/*_{1,2}.fastq.gz"  // Legacy input fastq files pattern (for backward compatibility)
+params.reference = "$baseDir/reference/genome.fa" // Reference transcriptome
 params.output_dir = "$baseDir/results"           // Output directory
 params.oarfish_params = ""                        // Additional oarfish parameters
 params.threads = 8                               // Number of threads
@@ -11,7 +12,7 @@ params.mapq = 10                                 // Minimum mapping quality scor
 log.info """\
     RNA-SEQ PIPELINE WITH MINIMAP2 AND OARFISH
     =========================================
-    reads        : ${params.reads}
+    sample_sheet : ${params.sample_sheet}
     reference    : ${params.reference}
     output_dir   : ${params.output_dir}
     threads      : ${params.threads}
@@ -19,10 +20,36 @@ log.info """\
     """
     .stripIndent()
 
-// Create channels for input files
-Channel
-    .fromFilePairs(params.reads, checkIfExists: true)
-    .set { read_pairs_ch }
+// Create input channel from sample sheet if it exists
+if (file(params.sample_sheet).exists()) {
+    Channel
+        .fromPath(params.sample_sheet)
+        .splitCsv(header: true)
+        .map { row -> 
+            def sample_id = row.sample_id
+            def fastq_files = row.fastq_path.split(',')
+            
+            if (fastq_files.size() == 1) {
+                // Single-end reads
+                return [sample_id, file(fastq_files[0])]
+            } else if (fastq_files.size() >= 2) {
+                // Paired-end reads - take first two files
+                return [sample_id, [file(fastq_files[0]), file(fastq_files[1])]]
+            } else {
+                error "Invalid entry in sample sheet for sample: ${sample_id}"
+            }
+        }
+        .set { samples_ch }
+    
+    log.info "Using sample sheet: ${params.sample_sheet}"
+} else {
+    // Fallback to legacy mode with glob pattern
+    log.info "Sample sheet not found, using legacy input pattern: ${params.reads}"
+    
+    Channel
+        .fromFilePairs(params.reads, checkIfExists: true)
+        .set { samples_ch }
+}
 
 // Define process for alignment with minimap2 using long-read high-quality mode
 process MINIMAP2_ALIGN {
@@ -30,7 +57,7 @@ process MINIMAP2_ALIGN {
     publishDir "${params.output_dir}/minimap2", mode: 'copy'
     
     input:
-    tuple val(sample_id), path(reads) from read_pairs_ch
+    tuple val(sample_id), path(reads) from samples_ch
     path reference from params.reference
     
     output:

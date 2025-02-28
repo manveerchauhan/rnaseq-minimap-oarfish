@@ -6,6 +6,7 @@ params.reference = "$baseDir/reference/genome.fa" // Reference genome
 params.output_dir = "$baseDir/results"           // Output directory
 params.oarfish_params = ""                        // Additional oarfish parameters
 params.threads = 8                               // Number of threads
+params.mapq = 10                                 // Minimum mapping quality score
 
 log.info """\
     RNA-SEQ PIPELINE WITH MINIMAP2 AND OARFISH
@@ -14,6 +15,7 @@ log.info """\
     reference    : ${params.reference}
     output_dir   : ${params.output_dir}
     threads      : ${params.threads}
+    min_mapq     : ${params.mapq}
     """
     .stripIndent()
 
@@ -22,7 +24,7 @@ Channel
     .fromFilePairs(params.reads, checkIfExists: true)
     .set { read_pairs_ch }
 
-// Define process for alignment with minimap2
+// Define process for alignment with minimap2 using long-read high-quality mode
 process MINIMAP2_ALIGN {
     tag "$sample_id"
     publishDir "${params.output_dir}/minimap2", mode: 'copy'
@@ -35,13 +37,16 @@ process MINIMAP2_ALIGN {
     tuple val(sample_id), path("${sample_id}.sam") into alignment_ch
     
     script:
+    // Handle both single and paired-end reads
+    def reads_input = reads instanceof List ? "${reads[0]} ${reads[1]}" : "${reads}"
+    
     """
-    minimap2 -ax splice -t ${params.threads} ${reference} ${reads[0]} ${reads[1]} > ${sample_id}.sam
+    minimap2 -ax lr:hq --eqx -N 100 -t ${params.threads} ${reference} ${reads_input} > ${sample_id}.sam
     """
 }
 
-// Convert SAM to BAM and sort
-process SAM_TO_SORTED_BAM {
+// Convert SAM to BAM, filter by quality, and sort
+process SAM_TO_FILTERED_BAM {
     tag "$sample_id"
     publishDir "${params.output_dir}/bam", mode: 'copy'
     
@@ -49,17 +54,23 @@ process SAM_TO_SORTED_BAM {
     tuple val(sample_id), path(sam_file) from alignment_ch
     
     output:
-    tuple val(sample_id), path("${sample_id}.sorted.bam"), path("${sample_id}.sorted.bam.bai") into sorted_bam_ch
+    tuple val(sample_id), path("${sample_id}.filtered.sorted.bam"), path("${sample_id}.filtered.sorted.bam.bai") into sorted_bam_ch
     
     script:
     """
+    # Convert SAM to BAM
     samtools view -bS ${sam_file} > ${sample_id}.bam
-    samtools sort -@ ${params.threads} ${sample_id}.bam -o ${sample_id}.sorted.bam
-    samtools index ${sample_id}.sorted.bam
+    
+    # Filter BAM by mapping quality
+    samtools view -b -q ${params.mapq} ${sample_id}.bam > ${sample_id}.filtered.bam
+    
+    # Sort and index the filtered BAM
+    samtools sort -@ ${params.threads} ${sample_id}.filtered.bam -o ${sample_id}.filtered.sorted.bam
+    samtools index ${sample_id}.filtered.sorted.bam
     """
 }
 
-// Run oarfish for RNA-seq analysis
+// Run oarfish for RNA-seq analysis with coverage model
 process OARFISH_ANALYSIS {
     tag "$sample_id"
     publishDir "${params.output_dir}/oarfish", mode: 'copy'
@@ -72,7 +83,7 @@ process OARFISH_ANALYSIS {
     
     script:
     """
-    oarfish ${params.oarfish_params} --input ${bam_file} --prefix ${sample_id} --threads ${params.threads}
+    oarfish -j ${params.threads} -a ${bam_file} -o ${sample_id} --filter-group no-filters --model-coverage
     """
 }
 

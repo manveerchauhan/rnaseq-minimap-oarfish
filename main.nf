@@ -106,27 +106,11 @@ process OARFISH_ANALYSIS {
     tuple val(sample_id), path(bam_file), path(bam_index) from sorted_bam_ch
     
     output:
-    path "${sample_id}*" into oarfish_results_ch
+    path "${sample_id}*"
     
     script:
     """
     oarfish -j ${params.threads} -a ${bam_file} -o ${sample_id} --filter-group no-filters --model-coverage
-    """
-}
-
-// Generate MultiQC report for all samples
-process MULTIQC {
-    publishDir "${params.output_dir}/multiqc", mode: 'copy'
-    
-    input:
-    path '*' from oarfish_results_ch.collect()
-    
-    output:
-    path 'multiqc_report.html'
-    
-    script:
-    """
-    multiqc ${params.output_dir}
     """
 }
 

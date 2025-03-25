@@ -1,0 +1,25 @@
+# Create directories for your data
+mkdir -p data reference results
+
+# Copy your FASTQ files to the data directory
+cp /path/to/your/fastq/files/*.fastq.gz data/
+
+# Copy your reference transcriptome to the reference directory
+cp /path/to/your/transcriptome.fa reference/
+
+# Create a sample.csv file
+cat > samples.csv << EOL
+sample_id,fastq_path
+sample1,data/sample1.fastq.gz
+sample2,data/sample2.fastq.gz
+sample3,data/sample3.fastq.gz
+EOL
+
+
+./run.sh --sample_sheet samples.csv \
+         --reference reference/transcriptome.fa \
+         --output results \
+         --threads 16 \
+         --mapq 10 \
+         --params "--filter-group no-filters --model-coverage" \
+         --profile standard

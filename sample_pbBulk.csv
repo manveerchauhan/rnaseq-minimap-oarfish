@@ -1,0 +1,6 @@
+sample_id,fastq_path
+pb_Bulk_10perRarified,/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/pb_sc/matched_pb_bulk/fastqs/pb_matchedBulk_10percentRarified.fastq.gz
+pb_Bulk_25perRarified,/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/pb_sc/matched_pb_bulk/fastqs/pb_matchedBulk_25percentRarified.fastq.gz
+pb_Bulk_50perRarified,/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/pb_sc/matched_pb_bulk/fastqs/pb_matchedBulk_50percentRarified.fastq.gz
+pb_Bulk_75perRarified,/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/pb_sc/matched_pb_bulk/fastqs/pb_matchedBulk_75percentRarified.fastq.gz
+pb_Bulk_100perRarified,/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/pb_sc/matched_pb_bulk/fastqs/pb_matchedBulk_100percentRarified.fastq

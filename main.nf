@@ -1,8 +1,11 @@
 #!/usr/bin/env nextflow
 
+// Enable DSL2
+nextflow.enable.dsl = 2
+
 // Define parameters
-params.sample_sheet = "$baseDir/samples.csv"    // Sample sheet with sample IDs and FASTQ paths
-params.reads = "$baseDir/data/*_{1,2}.fastq.gz"  // Legacy input fastq files pattern (for backward compatibility)
+params.sample_sheet = "$baseDir/samples.csv"     // Sample sheet with sample IDs and FASTQ paths
+params.reads = "$baseDir/data/*_{1,2}.fastq.gz"  // Legacy input fastq files pattern
 params.reference = "$baseDir/reference/genome.fa" // Reference transcriptome
 params.output_dir = "$baseDir/results"           // Output directory
 params.oarfish_params = ""                        // Additional oarfish parameters
@@ -20,48 +23,17 @@ log.info """\
     """
     .stripIndent()
 
-// Create input channel from sample sheet if it exists
-if (file(params.sample_sheet).exists()) {
-    Channel
-        .fromPath(params.sample_sheet)
-        .splitCsv(header: true)
-        .map { row -> 
-            def sample_id = row.sample_id
-            def fastq_files = row.fastq_path.split(',')
-            
-            if (fastq_files.size() == 1) {
-                // Single-end reads
-                return [sample_id, file(fastq_files[0])]
-            } else if (fastq_files.size() >= 2) {
-                // Paired-end reads - take first two files
-                return [sample_id, [file(fastq_files[0]), file(fastq_files[1])]]
-            } else {
-                error "Invalid entry in sample sheet for sample: ${sample_id}"
-            }
-        }
-        .set { samples_ch }
-    
-    log.info "Using sample sheet: ${params.sample_sheet}"
-} else {
-    // Fallback to legacy mode with glob pattern
-    log.info "Sample sheet not found, using legacy input pattern: ${params.reads}"
-    
-    Channel
-        .fromFilePairs(params.reads, checkIfExists: true)
-        .set { samples_ch }
-}
-
 // Define process for alignment with minimap2 using long-read high-quality mode
 process MINIMAP2_ALIGN {
     tag "$sample_id"
     publishDir "${params.output_dir}/minimap2", mode: 'copy'
     
     input:
-    tuple val(sample_id), path(reads) from samples_ch
-    path reference from params.reference
+    tuple val(sample_id), path(reads)
+    path reference
     
     output:
-    tuple val(sample_id), path("${sample_id}.sam") into alignment_ch
+    tuple val(sample_id), path("${sample_id}.sam")
     
     script:
     // Handle both single and paired-end reads
@@ -78,10 +50,10 @@ process SAM_TO_FILTERED_BAM {
     publishDir "${params.output_dir}/bam", mode: 'copy'
     
     input:
-    tuple val(sample_id), path(sam_file) from alignment_ch
+    tuple val(sample_id), path(sam_file)
     
     output:
-    tuple val(sample_id), path("${sample_id}.filtered.sorted.bam"), path("${sample_id}.filtered.sorted.bam.bai") into sorted_bam_ch
+    tuple val(sample_id), path("${sample_id}.filtered.sorted.bam"), path("${sample_id}.filtered.sorted.bam.bai")
     
     script:
     """
@@ -103,15 +75,55 @@ process OARFISH_ANALYSIS {
     publishDir "${params.output_dir}/oarfish", mode: 'copy'
     
     input:
-    tuple val(sample_id), path(bam_file), path(bam_index) from sorted_bam_ch
+    tuple val(sample_id), path(bam_file), path(bam_index)
     
     output:
     path "${sample_id}*"
     
     script:
     """
-    oarfish -j ${params.threads} -a ${bam_file} -o ${sample_id} --filter-group no-filters --model-coverage
+    oarfish -j ${params.threads} -a ${bam_file} -o ${sample_id} --filter-group no-filters --model-coverage ${params.oarfish_params}
     """
+}
+
+// Define the workflow
+workflow {
+    // Create input channel from sample sheet if it exists
+    if (file(params.sample_sheet).exists()) {
+        samples_ch = Channel
+            .fromPath(params.sample_sheet)
+            .splitCsv(header: true)
+            .map { row -> 
+                def sample_id = row.sample_id
+                def fastq_files = row.fastq_path.split(',')
+                
+                if (fastq_files.size() == 1) {
+                    // Single-end reads
+                    return [sample_id, file(fastq_files[0])]
+                } else if (fastq_files.size() >= 2) {
+                    // Paired-end reads - take first two files
+                    return [sample_id, [file(fastq_files[0]), file(fastq_files[1])]]
+                } else {
+                    error "Invalid entry in sample sheet for sample: ${sample_id}"
+                }
+            }
+        
+        log.info "Using sample sheet: ${params.sample_sheet}"
+    } else {
+        // Fallback to legacy mode with glob pattern
+        log.info "Sample sheet not found, using legacy input pattern: ${params.reads}"
+        
+        samples_ch = Channel
+            .fromFilePairs(params.reads, checkIfExists: true)
+    }
+
+    // Reference as channel
+    reference_ch = Channel.value(file(params.reference))
+    
+    // Run the pipeline
+    alignment_ch = MINIMAP2_ALIGN(samples_ch, reference_ch)
+    bam_ch = SAM_TO_FILTERED_BAM(alignment_ch)
+    OARFISH_ANALYSIS(bam_ch)
 }
 
 workflow.onComplete {

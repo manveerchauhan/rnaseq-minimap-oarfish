@@ -2,10 +2,12 @@
 mkdir -p data reference results
 
 # Copy your FASTQ files to the data directory
-cp /path/to/your/fastq/files/*.fastq.gz data/
+/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/ont_sc/matched_ont_bulk/fastqs
+/data/gpfs/projects/punim2251/Aim1_LongBench/ReadRarefaction_wFixedCells/data/LongBench_All/pb_sc/matched_pb_bulk/fastqs
+
 
 # Copy your reference transcriptome to the reference directory
-cp /path/to/your/transcriptome.fa reference/
+/data/gpfs/projects/punim2251/LongBench_data/reference/gencode.v44.transcripts.fa
 
 # Create a sample.csv file
 cat > samples.csv << EOL
@@ -16,8 +18,8 @@ sample3,data/sample3.fastq.gz
 EOL
 
 
-./run.sh --sample_sheet samples.csv \
-         --reference reference/transcriptome.fa \
+./run.sh --sample_sheet sample_ontBulk.csv \
+         --reference /data/gpfs/projects/punim2251/LongBench_data/reference/gencode.v44.transcripts.fa \
          --output results \
          --threads 16 \
          --mapq 10 \

@@ -1,0 +1,43 @@
+# Slurm scripts
+*.slurm
+
+# Pipeline output directories
+results*/
+results/
+test_run*/
+*_results/
+
+# Nextflow specific
+.nextflow/
+.nextflow.log*
+.nextflow.history
+work/
+trace*
+*_report.html
+timeline*
+report*
+dag*
+
+# Logs
+*.log
+*.err
+*.out
+slurm-*.out
+nohup.out
+
+# Temporary files
+tmp/
+temp/
+.DS_Store
+*.swp
+*~
+
+# Large data files
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.bam
+*.sam
+*.vcf
+*.vcf.gz

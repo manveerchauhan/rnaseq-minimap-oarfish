@@ -1,4 +1,4 @@
-name: bulk-rnaseq-longbench
+Copyname: bulk-rnaseq-longbench
 
 channels:
   - bioconda
@@ -6,6 +6,9 @@ channels:
   - defaults
 
 dependencies:
-  - python==3.10.4
-  - nextflow==24.10.5
-  - minimap2==2.28
+  # Core tools with specific versions
+  - python=3.10.8
+  - nextflow=24.10.5
+  - minimap2=2.28
+  - samtools=1.9
+  - oarfish=0.6.5

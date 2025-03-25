@@ -25,6 +25,9 @@ dag*
 slurm-*.out
 nohup.out
 
+# My notes
+notes.txt
+
 # Temporary files
 tmp/
 temp/

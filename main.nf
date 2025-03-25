@@ -23,48 +23,49 @@ log.info """\
     """
     .stripIndent()
 
-// Define process for alignment with minimap2 using long-read high-quality mode
+// Define process for alignment with minimap2 using long-read high-quality mode and streaming directly to BAM
 process MINIMAP2_ALIGN {
     tag "$sample_id"
-    publishDir "${params.output_dir}/minimap2", mode: 'copy'
     
     input:
     tuple val(sample_id), path(reads)
     path reference
     
     output:
-    tuple val(sample_id), path("${sample_id}.sam")
+    tuple val(sample_id), path("${sample_id}.sorted.bam"), path("${sample_id}.sorted.bam.bai")
     
     script:
     // Handle both single and paired-end reads
     def reads_input = reads instanceof List ? "${reads[0]} ${reads[1]}" : "${reads}"
     
     """
-    minimap2 -ax lr:hq --eqx -N 100 -t ${params.threads} ${reference} ${reads_input} > ${sample_id}.sam
+    # Align and directly convert to sorted BAM in one pipeline
+    minimap2 -ax lr:hq --eqx -N 100 -t ${params.threads} ${reference} ${reads_input} | \
+    samtools view -bS - | \
+    samtools sort -@ ${params.threads} -o ${sample_id}.sorted.bam -
+    
+    # Index the BAM file
+    samtools index ${sample_id}.sorted.bam
     """
 }
 
-// Convert SAM to BAM, filter by quality, and sort
+// Filter BAM by quality and prepare for analysis
 process SAM_TO_FILTERED_BAM {
     tag "$sample_id"
     publishDir "${params.output_dir}/bam", mode: 'copy'
     
     input:
-    tuple val(sample_id), path(sam_file)
+    tuple val(sample_id), path(bam_file), path(bam_index)
     
     output:
     tuple val(sample_id), path("${sample_id}.filtered.sorted.bam"), path("${sample_id}.filtered.sorted.bam.bai")
     
     script:
     """
-    # Convert SAM to BAM
-    samtools view -bS ${sam_file} > ${sample_id}.bam
-    
     # Filter BAM by mapping quality
-    samtools view -b -q ${params.mapq} ${sample_id}.bam > ${sample_id}.filtered.bam
+    samtools view -b -q ${params.mapq} ${bam_file} > ${sample_id}.filtered.sorted.bam
     
-    # Sort and index the filtered BAM
-    samtools sort -@ ${params.threads} ${sample_id}.filtered.bam -o ${sample_id}.filtered.sorted.bam
+    # Index the filtered BAM
     samtools index ${sample_id}.filtered.sorted.bam
     """
 }
